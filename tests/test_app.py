@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.fixture()
 def app(tmp_path, monkeypatch):
-    monkeypatch.delenv("TALUS_DEV_ACCOUNT", raising=False)
+    monkeypatch.delenv("PONTOON_DEV_ACCOUNT", raising=False)
     return create_app(Store(tmp_path))
 
 
@@ -85,7 +85,7 @@ def test_bad_projects_are_refused(app):
 
 def test_engine_files_are_served_as_modules(app):
     c = as_user(app)
-    for path in ("/static/engine/hydrostatics.js", "/static/js/app.js", "/static/js/worker.js", "/static/vendor/three/three.module.min.js"):
+    for path in ("/static/engine/hydro.js", "/static/engine/analyse.js", "/static/js/app.js", "/static/js/worker.js", "/static/vendor/three/three.module.min.js"):
         r = c.get(path)
         assert r.status_code == 200, path
         assert "javascript" in r.headers["Content-Type"], path
