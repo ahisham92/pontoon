@@ -74,3 +74,59 @@ test("IFC export: header, one IfcPile per pile, unique GUIDs", () => {
   assert.equal(guid("a").length, 22);
   assert.match(guid("a")[0], /[0-3]/);
 });
+
+// ------------------------------------------------------------------ phase 2: layouts, moorings, earthquake, AS 3962:2020
+
+const withP = (o) => analyse({ type: "concrete", ...o });
+
+test("layouts: L, T and comb add a spine or head and keep every check sourced", () => {
+  const single = results.concrete;
+  for (const shape of ["L", "T", "comb"]) {
+    const r = withP({ layout: { shape, berths: 30, arms: 3 } });
+    assert.equal(r.layout.shape, shape);
+    assert.ok(r.layout.totalWalk > (shape === "comb" ? 0 : single.layout.walkLen), `${shape} has more walkway`);
+    if (shape === "T") assert.ok(r.layout.head && r.layout.head.modules >= 1);
+    else assert.ok(r.layout.spine && r.layout.spine.modules >= 1);
+    for (const c of r.checks) assert.ok(c.src, `${shape}: ${c.name} cites its source`);
+  }
+  const comb = withP({ layout: { shape: "comb", berths: 60, arms: 3 } });
+  assert.equal(comb.layout.arms, 3);
+  assert.ok(comb.layout.fairway >= 1.5 * comb.vessel.L - 1e-9, "auto arm spacing leaves a 1.5 L fairway");
+  assert.ok(comb.checks.some((c) => c.name === "Fairway between arms" && c.pass));
+});
+
+test("chain moorings: catenary tension, chain on the bed, anchors in the IFC", () => {
+  const r = withP({ mooring: { type: "chains" } });
+  assert.equal(r.piles.type, "chains");
+  assert.ok(r.piles.mbl / r.piles.gov.T >= 3 - 1e-9, "MBL / T ≥ FOS 3");
+  assert.ok(r.piles.chainLen > r.piles.gov.s, "some chain lies on the bed");
+  const ifc = exportIFC(r, { author: "test", now: new Date(0) });
+  assert.equal((ifc.match(/IFCPILE\(/g) || []).length, 0);
+  assert.ok((ifc.match(/\.PAD_FOOTING\./g) || []).length >= 2, "anchor blocks exported");
+});
+
+test("earthquake: a stronger hazard factor never lightens the piles", () => {
+  const a = withP({ seismic: { on: true, Z: 0.08, site: "De" } }), b = withP({ seismic: { on: true, Z: 0.3, site: "Ee" } });
+  const eq = (r) => r.piles.results.find((x) => /Earthquake/.test(x.combo.name));
+  assert.ok(eq(a) && eq(b), "earthquake case present");
+  assert.ok(eq(b).H >= eq(a).H, "larger kpZ, larger pile load");
+  assert.ok(b.piles.Lreq >= a.piles.Lreq - 1e-9);
+});
+
+test("AS 3962:2020: accessible berths, gangway slope and width, Table 4.6 displacement", () => {
+  const gen = results.concrete, acc = withP({ layout: { accessible: true } });
+  assert.equal(gen.layout.slope, 4);
+  assert.equal(acc.layout.slope, 8);
+  assert.ok(acc.gangway.length >= gen.gangway.length, "accessible gangway is longer");
+  assert.ok(acc.layout.gangwayW >= 1.2 && acc.layout.walkW >= 1.8);
+  assert.ok(acc.checks.some((c) => /80 %/.test(c.name)));
+  assert.ok(gen.vessel.disp >= 12 - 1e-9, "12 m boat at least the Table 4.6 12 t");
+  assert.equal(withP({ vessel: { L: 30, kind: "yacht" } }).berth.V, 0.2);
+});
+
+test("IFC export carries the detailing: mesh, joint rods, guides", () => {
+  const ifc = exportIFC(results.concrete, { author: "test", now: new Date(0) });
+  assert.ok(/IFCREINFORCINGMESH\(/.test(ifc), "mesh");
+  assert.ok(/\.THREADEDROD\./.test(ifc), "joint rods");
+  assert.ok(/Guide G1/.test(ifc), "pile guides");
+});

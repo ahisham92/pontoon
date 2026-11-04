@@ -17,15 +17,28 @@ comes from nothing more than the boat length and the number of berths.
 | Modular | HDPE cube floats |
 | Wave attenuator | deep ballasted concrete box, Macagno transmission |
 
-Piles: steel CHS (AS 4100, corrosion allowance), precast concrete square or round (AS 3600),
-and round timber (AS 1720.1). Ground resistance by Broms with φg from AS 2159.
+Layouts: one straight arm, an arm with a landward walkway (L), an arm with a T-head, or several
+arms off a spine walkway (comb) with the AS 3962 fairway between them. General or accessible
+marina berths.
+
+Moorings: guide piles, either steel CHS (AS 4100, corrosion allowance), precast concrete square
+or round (AS 3600) or round timber (AS 1720.1), with ground resistance by Broms and φg from
+AS 2159; or crossed studless chains (catenary, corrosion, FOS 3) to concrete anchor blocks.
 
 ## The checks
 
-- **AS 3962** loads and limits: dead-load freeboard, flotation reserve, stability load
+- **AS 3962:2020** loads and limits: dead-load freeboard, flotation reserve, stability load
   (exact heeled equilibrium of the clipped section), opposite chine, 4.5 kN corner load,
-  live load, the Cl 4.2 combinations, wind, current, waves, debris and berthing.
-- **AS/NZS 1170.0, 1170.2**: return period from design life and importance, regional wind speed.
+  live load, the Cl 4.2 combinations, wind, current, waves, debris, berthing (Table 4.6
+  displacements), Tables 3.1 to 3.5 for boats, walkways and gangways, pile heights (Cl 4.14)
+  and the 25 year minimum life (Cl 4.16).
+- **AS/NZS 1170.0, 1170.2, 1170.4**: return period from design life and importance, regional
+  wind speed, and the earthquake spectrum acting on the piles.
+- **AS 4997**: design working life by category and a serviceability pile deflection check.
+- **Connections and gangway**: module joint and finger root rods (AS 4100 Cl 9.3.2), SHS pile
+  guide frames, and the gangway as two side trusses in aluminium (AS/NZS 1664.1) or steel,
+  auto-sized for strength, L/300 deflection and a 3 Hz frequency, with the landing pontoon
+  widened until it keeps the flotation reserve.
 - **Structure**: each module as a beam on the hydrostatic (Winkler) spring, by finite elements.
 - **Piles**: elastic pile on a Winkler subgrade for M* and deflection; Broms for capacity.
 - **Motion**: heave, pitch, roll and flexural modes with added mass, arm sway and pile modes,
@@ -36,16 +49,18 @@ The Report button prints all of it.
 
 ## Verification
 
-`engine/verify.js` runs the engine against 18 independent closed-form answers (beam theory,
+`engine/verify.js` runs the engine against 23 independent closed-form answers (beam theory,
 Hetényi, free–free vibration, wall-sided formula, linear wave theory, AS 4100, AS 3600, Broms,
-AS/NZS 1170.2 and AS 2159 tables). They run in the app (Verification tab) and in CI.
+AS/NZS 1170.2, AS 1170.4 and AS 2159 tables, chain catenary, AS 4100 bolts, AS 3962:2020 tables). They run in the app (Verification tab) and in CI.
 Values to confirm before issue are listed in the Design basis tab.
 
 ## Revit
 
 **Revit (IFC)** downloads an IFC4 model: pontoon modules and fingers as `IfcSlab`, piles as
-`IfcPile`, the gangway as `IfcBeam`, each with a `PT_Design` property set (sizes, levels,
-governing ratios). In Revit: Insert → Link IFC.
+`IfcPile` (with reinforcement for precast piles), the gangway as `IfcBeam`, deck mesh as
+`IfcReinforcingMesh`, joint rods as `IfcMechanicalFastener`, pile guides and chains as
+`IfcMember`, and anchor blocks as `IfcFooting`, each with a `PT_Design` property set (sizes,
+levels, governing ratios). In Revit: Insert → Link IFC.
 
 ## Running it
 
